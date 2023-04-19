@@ -13,12 +13,12 @@
 #define HASHES_SHA256_LEN 32
 #define HASHES_SHA256_STR_LEN HASHES_SHA256_LEN * 2
 
-// HIEW definitions
+// HEM definitions
 
 #define HEM_MODULE_VERSION_MAJOR 1
 #define HEM_MODULE_VERSION_MINOR 0
 #define HEM_MODULE_NAME "Hashes"
-#define HEM_MODULE_FULL_NAME "Hashes"
+#define HEM_MODULE_FULL_NAME "Hashes: MD5, SHA-1, SHA-256"
 #define HEM_MODULE_DESCRIPTION "Calculate common hashes for a file or block"
 #define HEM_MODULE_AUTHOR "Fernando Merces - github.com/merces"
 
@@ -340,17 +340,20 @@ int HEM_API Hem_EntryPoint(HEMCALL_TAG* HemCall) {
 
     HEM_UINT pressedFnKey;
 
-    int item = 1; // Menu items start at 1 (not 0)
-    while (item = HiewGate_Menu("Hashes (MD5, SHA-1, SHA-256)", lines, _countof(lines), HASHES_SHA256_STR_LEN, item, &fnKeys, &pressedFnKey, NULL, NULL)) {
-        if (pressedFnKey) {
-            if (pressedFnKey == HEM_FNKEY_F5) {
+    int item = 1; // Just a reminder menu items start at 1 (not 0)
+    while (item = HiewGate_Menu(HEM_MODULE_FULL_NAME, lines, _countof(lines), HASHES_SHA256_STR_LEN, item, &fnKeys, &pressedFnKey, NULL, NULL)) {
+        switch (pressedFnKey) {
+        case HEM_FNKEY_F1:
+            ShowHelp();
+            break;
+        case HEM_FNKEY_F5:
                 if (!SendTextToClipboard(lines[item - 1])) {
                     HiewGate_Message("Error", "Could not send the text to clipboard");
                     goto cleanup;
                 }
-            } else if (pressedFnKey == HEM_FNKEY_F1) {
-                ShowHelp();
-            }
+            break; 
+        default:
+            break;
         }
     }
 
