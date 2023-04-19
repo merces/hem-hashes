@@ -257,6 +257,8 @@ int HEM_API Hem_EntryPoint(HEMCALL_TAG* HemCall) {
         goto cleanup;
     }
 
+    HiewGate_MessageWaitOpen("Calculating hashes...");
+
     // MD5
     UCHAR md5Hash[16]; // MD5 hash is a 16-byte value
     UCHAR md5String[sizeof(md5Hash) * 2 + 1] = { 0 }; // Its string representation needs 32 bytes plus a nullbyte
@@ -307,6 +309,8 @@ int HEM_API Hem_EntryPoint(HEMCALL_TAG* HemCall) {
             goto cleanup;
         }
     }
+
+    HiewGate_MessageWaitClose();
 
     // Menu code
 
