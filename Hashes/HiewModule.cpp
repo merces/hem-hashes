@@ -245,11 +245,6 @@ int HEM_API Hem_EntryPoint(HEMCALL_TAG* HemCall) {
         BufferSize = HiewData.filelength;
     }
 
-    if (BufferSize > 0x40000000) {
-        HiewGate_Message("Error", "Sorry, I can't handle file/blocks bigger than 1GB!");
-        return HEM_OK;
-    }
-
     Buffer = HiewGate_GetMemory((HEM_UINT)BufferSize);
     
     if (!Buffer) {
