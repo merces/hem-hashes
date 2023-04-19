@@ -268,8 +268,8 @@ int HEM_API Hem_EntryPoint(HEMCALL_TAG* HemCall) {
     HiewGate_MessageWaitOpen("Calculating hashes...");
 
     // MD5
-    UCHAR md5Hash[HASHES_MD5_LEN]; // MD5 hash is a 16-byte value
-    UCHAR md5String[HASHES_MD5_STR_LEN + 1] = { 0 }; // Its string representation needs 32 bytes plus a nullbyte
+    UCHAR md5Hash[HASHES_MD5_LEN];
+    UCHAR md5String[HASHES_MD5_STR_LEN + 1] = { 0 };
     ULONG md5HashSize = sizeof(md5Hash);
 
     if (!CalculateMd5Hash(Buffer, (ULONG)BufferSize, md5Hash, &md5HashSize)) {
