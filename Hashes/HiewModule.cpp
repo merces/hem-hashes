@@ -4,6 +4,15 @@
 
 #include "hem.h"
 
+// Hashes definitions
+
+#define HASHES_MD5_LEN 16
+#define HASHES_MD5_STR_LEN HASHES_MD5_LEN * 2
+#define HASHES_SHA1_LEN 20
+#define HASHES_SHA1_STR_LEN HASHES_SHA1_LEN * 2
+#define HASHES_SHA256_LEN 32
+#define HASHES_SHA256_STR_LEN HASHES_SHA256_LEN * 2
+
 // HIEW definitions
 
 #define HEM_MODULE_VERSION_MAJOR 1
@@ -87,7 +96,6 @@ BOOL SendTextToClipboard(const PCHAR text) {
     if (!p)
         return FALSE;
 
-    //memcpy(p, text, len);
     CopyMemory(p, text, len);
 
     if (!GlobalUnlock(hMem) && GetLastError() != NO_ERROR)
@@ -260,8 +268,8 @@ int HEM_API Hem_EntryPoint(HEMCALL_TAG* HemCall) {
     HiewGate_MessageWaitOpen("Calculating hashes...");
 
     // MD5
-    UCHAR md5Hash[16]; // MD5 hash is a 16-byte value
-    UCHAR md5String[sizeof(md5Hash) * 2 + 1] = { 0 }; // Its string representation needs 32 bytes plus a nullbyte
+    UCHAR md5Hash[HASHES_MD5_LEN]; // MD5 hash is a 16-byte value
+    UCHAR md5String[HASHES_MD5_STR_LEN + 1] = { 0 }; // Its string representation needs 32 bytes plus a nullbyte
     ULONG md5HashSize = sizeof(md5Hash);
 
     if (!CalculateMd5Hash(Buffer, (ULONG)BufferSize, md5Hash, &md5HashSize)) {
@@ -277,9 +285,9 @@ int HEM_API Hem_EntryPoint(HEMCALL_TAG* HemCall) {
     }
 
     // SHA-1
-    UCHAR sha1Hash[20];
-    UCHAR sha1String[sizeof(sha1Hash) * 2 + 1] = { 0 };
-    ULONG sha1HashSize = sizeof(sha1Hash);
+    UCHAR sha1Hash[HASHES_SHA1_LEN];
+    UCHAR sha1String[HASHES_SHA1_STR_LEN + 1] = { 0 };
+    ULONG sha1HashSize = HASHES_SHA1_LEN;
 
     if (!CalculateSha1Hash(Buffer, (ULONG)BufferSize, sha1Hash, &sha1HashSize)) {
         HiewGate_Message("Error", "Hash calculation failed");
@@ -294,9 +302,9 @@ int HEM_API Hem_EntryPoint(HEMCALL_TAG* HemCall) {
     }
 
     // SHA-256
-    UCHAR sha256Hash[32];
-    UCHAR sha256String[sizeof(sha256Hash) * 2 + 1] = { 0 };
-    ULONG sha256HashSize = sizeof(sha256Hash);
+    UCHAR sha256Hash[HASHES_SHA256_LEN];
+    UCHAR sha256String[HASHES_SHA256_STR_LEN + 1] = { 0 };
+    ULONG sha256HashSize = HASHES_SHA256_LEN;
 
     if (!CalculateSha256Hash(Buffer, (ULONG)BufferSize, sha256Hash, &sha256HashSize)) {
         HiewGate_Message("Error", "Hash calculation failed");
@@ -333,7 +341,7 @@ int HEM_API Hem_EntryPoint(HEMCALL_TAG* HemCall) {
     HEM_UINT pressedFnKey;
 
     int item = 1; // Menu items start at 1 (not 0)
-    while (item = HiewGate_Menu("Hashes (MD5, SHA-1, SHA-256)", lines, _countof(lines), 80, item, &fnKeys, &pressedFnKey, NULL, NULL)) {
+    while (item = HiewGate_Menu("Hashes (MD5, SHA-1, SHA-256)", lines, _countof(lines), HASHES_SHA256_STR_LEN, item, &fnKeys, &pressedFnKey, NULL, NULL)) {
         if (pressedFnKey) {
             if (pressedFnKey == HEM_FNKEY_F5) {
                 if (!SendTextToClipboard(lines[item - 1])) {
