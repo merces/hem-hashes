@@ -56,3 +56,7 @@ hash the buffer using smaller chunks, but I just don't have time for that. PRs a
 - @taviso for his [kiewtai module](https://github.com/taviso/kiewtai) (I borrowed code from there, but inserted
 my own bugs :cowboy_hat_face:).
 - SEN for HIEW.
+
+## Author
+
+Fernando Mercês - @mer0x36
