@@ -341,7 +341,10 @@ int HEM_API Hem_EntryPoint(HEMCALL_TAG* HemCall) {
     HEM_UINT pressedFnKey;
 
     int item = 1; // Just a reminder menu items start at 1 (not 0)
-    while (item = HiewGate_Menu(HEM_MODULE_FULL_NAME, lines, _countof(lines), HASHES_SHA256_STR_LEN, item, &fnKeys, &pressedFnKey, NULL, NULL)) {
+    while (item = HiewGate_Menu(HEM_MODULE_FULL_NAME, lines, _countof(lines), HASH_SHA256_STR_LEN, item, &fnKeys, &pressedFnKey, NULL, NULL)) {
+        if (!pressedFnKey)
+            continue;
+
         switch (pressedFnKey) {
         case HEM_FNKEY_F1:
             ShowHelp();
