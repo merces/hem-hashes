@@ -4,14 +4,14 @@
 
 #include "hem.h"
 
-// Hashes definitions
+// Hash definitions
 
-#define HASHES_MD5_LEN 16
-#define HASHES_MD5_STR_LEN HASHES_MD5_LEN * 2
-#define HASHES_SHA1_LEN 20
-#define HASHES_SHA1_STR_LEN HASHES_SHA1_LEN * 2
-#define HASHES_SHA256_LEN 32
-#define HASHES_SHA256_STR_LEN HASHES_SHA256_LEN * 2
+#define HASH_MD5_LEN 16
+#define HASH_MD5_STR_LEN HASH_MD5_LEN * 2
+#define HASH_SHA1_LEN 20
+#define HASH_SHA1_STR_LEN HASH_SHA1_LEN * 2
+#define HASH_SHA256_LEN 32
+#define HASH_SHA256_STR_LEN HASH_SHA256_LEN * 2
 
 // HEM definitions
 
@@ -268,8 +268,8 @@ int HEM_API Hem_EntryPoint(HEMCALL_TAG* HemCall) {
     HiewGate_MessageWaitOpen("Calculating hashes...");
 
     // MD5
-    UCHAR md5Hash[HASHES_MD5_LEN];
-    UCHAR md5String[HASHES_MD5_STR_LEN + 1] = { 0 };
+    UCHAR md5Hash[HASH_MD5_LEN];
+    UCHAR md5String[HASH_MD5_STR_LEN + 1] = { 0 };
     ULONG md5HashSize = sizeof(md5Hash);
 
     if (!CalculateMd5Hash(Buffer, (ULONG)BufferSize, md5Hash, &md5HashSize)) {
@@ -285,9 +285,9 @@ int HEM_API Hem_EntryPoint(HEMCALL_TAG* HemCall) {
     }
 
     // SHA-1
-    UCHAR sha1Hash[HASHES_SHA1_LEN];
-    UCHAR sha1String[HASHES_SHA1_STR_LEN + 1] = { 0 };
-    ULONG sha1HashSize = HASHES_SHA1_LEN;
+    UCHAR sha1Hash[HASH_SHA1_LEN];
+    UCHAR sha1String[HASH_SHA1_STR_LEN + 1] = { 0 };
+    ULONG sha1HashSize = HASH_SHA1_LEN;
 
     if (!CalculateSha1Hash(Buffer, (ULONG)BufferSize, sha1Hash, &sha1HashSize)) {
         HiewGate_Message("Error", "Hash calculation failed");
@@ -302,9 +302,9 @@ int HEM_API Hem_EntryPoint(HEMCALL_TAG* HemCall) {
     }
 
     // SHA-256
-    UCHAR sha256Hash[HASHES_SHA256_LEN];
-    UCHAR sha256String[HASHES_SHA256_STR_LEN + 1] = { 0 };
-    ULONG sha256HashSize = HASHES_SHA256_LEN;
+    UCHAR sha256Hash[HASH_SHA256_LEN];
+    UCHAR sha256String[HASH_SHA256_STR_LEN + 1] = { 0 };
+    ULONG sha256HashSize = HASH_SHA256_LEN;
 
     if (!CalculateSha256Hash(Buffer, (ULONG)BufferSize, sha256Hash, &sha256HashSize)) {
         HiewGate_Message("Error", "Hash calculation failed");
