@@ -51,7 +51,7 @@ HEMINFO_TAG hemMod = {
 
 // Module supporting functions
 
-int ShowHelp(VOID) {
+static int ShowHelp(VOID) {
     static PCHAR HelpText[] = {
         "This module calculates the MD5, SHA-1, and SHA-256 hashes",
         "for a given file or block.",
@@ -64,16 +64,16 @@ int ShowHelp(VOID) {
         "   F5 - Copy selected hash value to clipboard.",
         "",
         "To hash a block of data, first mark a block, then",
-        "press F11 and load this module",
+        "press F11 and load this module.",
     };
 
-    CHAR title[100] = HEM_MODULE_NAME; // In case StringCchPrintfA() fails, we still have a title :)
+    static CHAR title[100] = HEM_MODULE_NAME; // In case StringCchPrintfA() fails, we still have a title :)
     StringCchPrintfA(title, _countof(title), "%s %d.%d", HEM_MODULE_NAME, HEM_MODULE_VERSION_MAJOR, HEM_MODULE_VERSION_MINOR);
 
     return HiewGate_Window(title, HelpText, _countof(HelpText), 60, NULL, NULL);
 }
 
-BOOL SendTextToClipboard(const PCHAR text) {
+static BOOL SendTextToClipboard(const PCHAR text) {
 
     if (!text)
         return FALSE;
@@ -117,7 +117,7 @@ BOOL SendTextToClipboard(const PCHAR text) {
     return TRUE;
 }
 
-BOOL CalculateMd5Hash(PVOID buffer, ULONG bufferLen, PUCHAR md5Hash, ULONG* md5HashSize) {
+static BOOL CalculateMd5Hash(PVOID buffer, ULONG bufferLen, PUCHAR md5Hash, ULONG* md5HashSize) {
     BOOL result = FALSE;
 
     BCRYPT_ALG_HANDLE hMd5Alg;
@@ -152,7 +152,7 @@ cleanup:
     return TRUE;
 }
 
-BOOL CalculateSha1Hash(PVOID buffer, ULONG bufferLen, PUCHAR sha1Hash, ULONG* sha1HashSize) {
+static BOOL CalculateSha1Hash(PVOID buffer, ULONG bufferLen, PUCHAR sha1Hash, ULONG* sha1HashSize) {
     BOOL result = FALSE;
 
     BCRYPT_ALG_HANDLE hSha1Alg;
@@ -187,7 +187,7 @@ cleanup:
     return TRUE;
 }
 
-BOOL CalculateSha256Hash(PVOID buffer, ULONG bufferLen, PUCHAR sha256Hash, ULONG* sha256HashSize) {
+static BOOL CalculateSha256Hash(PVOID buffer, ULONG bufferLen, PUCHAR sha256Hash, ULONG* sha256HashSize) {
     BOOL result = FALSE;
 
     BCRYPT_ALG_HANDLE hSha256Alg;
