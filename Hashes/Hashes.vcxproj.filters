@@ -20,7 +20,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="HiewModule.cpp">
+    <ClCompile Include="HiewModule.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="HiewGate.c">

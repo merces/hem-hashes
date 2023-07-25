@@ -127,7 +127,7 @@
     <ClInclude Include="hem.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="HiewModule.cpp" />
+    <ClCompile Include="HiewModule.c" />
     <ClCompile Include="HiewGate.c" />
   </ItemGroup>
   <ItemGroup>
