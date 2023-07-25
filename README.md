@@ -1,6 +1,6 @@
 # Hashes
 
-This is a simple [HIEW](https://hiew.ru) module (HEM) to calculate common hashes for files and blocks in HIEW.
+[HIEW](https://hiew.ru) External Module (HEM) to calculate MD5, SHA-1, and SHA-256 hashes of files and blocks.
 
 ## Installation
 
@@ -9,8 +9,8 @@ Download the `.hem` file and put it in your HIEW `hem` folder.
 ## Usage
 
 After opening a file in HIEW, press `F11` to load a HIEW module and choose it from the menu.
-It will calculate common hashes of the whole file. If you mark a block instead, then Hashes will generate
-the hashes for the marked block. Press `F5` to copy a hash value to clipboard.
+It will calculate common hashes of the whole file. If you mark a block instead, Hashes will generate
+the hashes of the block content. Press `F5` to copy a hash value to clipboard.
 
 ### Example
 
@@ -44,12 +44,6 @@ the hashes for the marked block. Press `F5` to copy a hash value to clipboard.
  000001A0:  00 00 00 00-00 00 00 00-00 E0 01 00-64 11 00 00           a  d                                             
  000001B0:  70 9D 01 00-70 00 00 00-00 00 00 00-00 00 00 00  p¥  p                                                     
 ```
-
-## Limitations
-
-- I currently allocate a buffer of the same size of the file/block. For that reason, the module is
-limited to files/blocks around 1GB (handled by `HiewGate_GetMemory()`). To fix this, I'd have to
-hash the buffer using smaller chunks, but I just don't have time for that. PRs are welcome.
 
 ## Thanks
 
