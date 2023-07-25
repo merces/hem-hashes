@@ -4,6 +4,10 @@
 
 #include "hem.h"
 
+// Global defs
+
+#define BUFFER_SIZE 1024 * 1024 * 4 
+
 // Hash definitions
 
 #define HASH_MD5_LEN 16
@@ -16,7 +20,7 @@
 // HEM definitions
 
 #define HEM_MODULE_VERSION_MAJOR 1
-#define HEM_MODULE_VERSION_MINOR 0
+#define HEM_MODULE_VERSION_MINOR 1
 #define HEM_MODULE_NAME "Hashes"
 #define HEM_MODULE_FULL_NAME "Hashes: MD5, SHA-1, SHA-256"
 #define HEM_MODULE_DESCRIPTION "Calculate common hashes for a file or block"
@@ -49,7 +53,7 @@ HEMINFO_TAG hemMod = {
     HEM_MODULE_AUTHOR
 };
 
-// Module supporting functions
+// Module support functions
 
 static int ShowHelp(VOID) {
     static PCHAR HelpText[] = {
@@ -117,109 +121,20 @@ static BOOL SendTextToClipboard(const PCHAR text) {
     return TRUE;
 }
 
-static BOOL CalculateMd5Hash(PVOID buffer, ULONG bufferLen, PUCHAR md5Hash, ULONG* md5HashSize) {
-    BOOL result = FALSE;
+// printf-like error display function using HiewGate_Message
+// max 256 characters
+static void ShowErrorF(STRSAFE_LPCSTR format, ...) {
+    STRSAFE_LPSTR s[256];
 
-    BCRYPT_ALG_HANDLE hMd5Alg;
-    NTSTATUS status;
-    status = BCryptOpenAlgorithmProvider(&hMd5Alg, BCRYPT_MD5_ALGORITHM, NULL, 0);
-    if (!BCRYPT_SUCCESS(status)) {
-        return FALSE;
+    va_list argptr;
+    va_start(argptr, format);
+
+    if (FAILED(StringCchPrintfA(s, sizeof(s), format, va_arg(argptr, char*)))) {
+        HiewGate_Message("Error", "ShowErrorF(): StringCchPrintfA() failed");
+        return;
     }
 
-    BCRYPT_HASH_HANDLE hMd5Hash;
-    status = BCryptCreateHash(hMd5Alg, &hMd5Hash, NULL, 0, NULL, 0, 0);
-    if (!BCRYPT_SUCCESS(status)) {
-        BCryptCloseAlgorithmProvider(hMd5Alg, 0);
-        return FALSE;
-    }
-
-    status = BCryptHashData(hMd5Hash, buffer, bufferLen, 0);
-    if (!BCRYPT_SUCCESS(status)) {
-        goto cleanup;
-    }
-
-
-    status = BCryptFinishHash(hMd5Hash, md5Hash, *md5HashSize, 0);
-    if (!BCRYPT_SUCCESS(status)) {
-        goto cleanup;
-    }
-
-cleanup:
-    BCryptDestroyHash(hMd5Hash);
-    BCryptCloseAlgorithmProvider(hMd5Alg, 0);
-
-    return TRUE;
-}
-
-static BOOL CalculateSha1Hash(PVOID buffer, ULONG bufferLen, PUCHAR sha1Hash, ULONG* sha1HashSize) {
-    BOOL result = FALSE;
-
-    BCRYPT_ALG_HANDLE hSha1Alg;
-    NTSTATUS status;
-    status = BCryptOpenAlgorithmProvider(&hSha1Alg, BCRYPT_SHA1_ALGORITHM, NULL, 0);
-    if (!BCRYPT_SUCCESS(status)) {
-        return FALSE;
-    }
-
-    BCRYPT_HASH_HANDLE hSha1Hash;
-    status = BCryptCreateHash(hSha1Alg, &hSha1Hash, NULL, 0, NULL, 0, 0);
-    if (!BCRYPT_SUCCESS(status)) {
-        BCryptCloseAlgorithmProvider(hSha1Alg, 0);
-        return FALSE;
-    }
-
-    status = BCryptHashData(hSha1Hash, buffer, bufferLen, 0);
-    if (!BCRYPT_SUCCESS(status)) {
-        goto cleanup;
-    }
-
-
-    status = BCryptFinishHash(hSha1Hash, sha1Hash, *sha1HashSize, 0);
-    if (!BCRYPT_SUCCESS(status)) {
-        goto cleanup;
-    }
-
-cleanup:
-    BCryptDestroyHash(hSha1Hash);
-    BCryptCloseAlgorithmProvider(hSha1Alg, 0);
-
-    return TRUE;
-}
-
-static BOOL CalculateSha256Hash(PVOID buffer, ULONG bufferLen, PUCHAR sha256Hash, ULONG* sha256HashSize) {
-    BOOL result = FALSE;
-
-    BCRYPT_ALG_HANDLE hSha256Alg;
-    NTSTATUS status;
-    status = BCryptOpenAlgorithmProvider(&hSha256Alg, BCRYPT_SHA256_ALGORITHM, NULL, 0);
-    if (!BCRYPT_SUCCESS(status)) {
-        return FALSE;
-    }
-
-    BCRYPT_HASH_HANDLE hSha256Hash;
-    status = BCryptCreateHash(hSha256Alg, &hSha256Hash, NULL, 0, NULL, 0, 0);
-    if (!BCRYPT_SUCCESS(status)) {
-        BCryptCloseAlgorithmProvider(hSha256Alg, 0);
-        return FALSE;
-    }
-
-    status = BCryptHashData(hSha256Hash, buffer, bufferLen, 0);
-    if (!BCRYPT_SUCCESS(status)) {
-        goto cleanup;
-    }
-
-
-    status = BCryptFinishHash(hSha256Hash, sha256Hash, *sha256HashSize, 0);
-    if (!BCRYPT_SUCCESS(status)) {
-        goto cleanup;
-    }
-
-cleanup:
-    BCryptDestroyHash(hSha256Hash);
-    BCryptCloseAlgorithmProvider(hSha256Alg, 0);
-
-    return TRUE;
+    HiewGate_Message("Error", (HEM_BYTE*)s);
 }
 
 int HEM_EXPORT Hem_Load(HIEWINFO_TAG* HiewInfo) {
@@ -234,7 +149,8 @@ int HEM_API Hem_Unload(VOID) {
 
 int HEM_API Hem_EntryPoint(HEMCALL_TAG* HemCall) {
     HEM_QWORD BaseAddr;
-    HEM_QWORD BufferSize;
+    HEM_UINT BufferSize;
+    HEM_QWORD BufferEnd;
     HIEWGATE_GETDATA HiewData;
     PVOID Buffer;
 
@@ -247,36 +163,155 @@ int HEM_API Hem_EntryPoint(HEMCALL_TAG* HemCall) {
     // Check if there is an active block, if not use the whole file.
     if (HiewData.sizeMark) {
         BaseAddr = HiewData.offsetMark1;
-        BufferSize = HiewData.sizeMark;
+        BufferEnd = HiewData.sizeMark;
+        // Use the smallest buffer if marked block size is smaller than BUFFER_SIZE
+        BufferSize = BufferEnd < BUFFER_SIZE ? BufferEnd : BUFFER_SIZE;
     } else {
         BaseAddr = 0;
-        BufferSize = HiewData.filelength;
+        BufferEnd = HiewData.filelength;
+        // Use a buffer to read the file contents using BUFFER_SIZE byte chunks
+        BufferSize = BUFFER_SIZE;
     }
 
-    Buffer = HiewGate_GetMemory((HEM_UINT)BufferSize);
+    Buffer = HiewGate_GetMemory(BufferSize);
     
     if (!Buffer) {
         HiewGate_Message("Error", "Memory allocation error");
         return HEM_OK;
     }
 
-    if (HiewGate_FileRead(BaseAddr, (HEM_UINT)BufferSize, Buffer) != BufferSize) {
-        HiewGate_Message("Error", "File read error");
-        goto cleanup;
-    }
-
     HiewGate_MessageWaitOpen("Calculating hashes...");
 
     // MD5
-    UCHAR md5Hash[HASH_MD5_LEN];
+    UCHAR md5Hash[HASH_MD5_LEN] = { 0 };
     UCHAR md5String[HASH_MD5_STR_LEN + 1] = { 0 };
     ULONG md5HashSize = sizeof(md5Hash);
 
-    if (!CalculateMd5Hash(Buffer, (ULONG)BufferSize, md5Hash, &md5HashSize)) {
-        HiewGate_Message("Error", "Hash calculation failed");
-        goto cleanup;
+    // SHA-1
+    UCHAR sha1Hash[HASH_SHA1_LEN] = { 0 };
+    UCHAR sha1String[HASH_SHA1_STR_LEN + 1] = { 0 };
+    ULONG sha1HashSize = HASH_SHA1_LEN;
+
+    // SHA-256
+    UCHAR sha256Hash[HASH_SHA256_LEN] = { 0 };
+    UCHAR sha256String[HASH_SHA256_STR_LEN + 1] = { 0 };
+    ULONG sha256HashSize = HASH_SHA256_LEN;
+
+    BCRYPT_ALG_HANDLE hMd5Alg, hSha1Alg, hSha256Alg;
+    BCRYPT_HASH_HANDLE hMd5Hash, hSha1Hash, hSha256Hash;
+    NTSTATUS status;
+
+    // MD5
+    status = BCryptOpenAlgorithmProvider(&hMd5Alg, BCRYPT_MD5_ALGORITHM, NULL, 0);
+    if (!BCRYPT_SUCCESS(status)) {
+        HiewGate_Message("Error", "BCryptOpenAlgorithmProvider() failed for MD5");
+        return HEM_OK;
+    }
+    
+    status = BCryptCreateHash(hMd5Alg, &hMd5Hash, NULL, 0, NULL, 0, 0);
+    if (!BCRYPT_SUCCESS(status)) {
+        BCryptCloseAlgorithmProvider(hMd5Alg, 0);
+        HiewGate_Message("Error", "BCryptCreateHash() failed for MD5");
+        return HEM_OK;
     }
 
+    // SHA-1
+    status = BCryptOpenAlgorithmProvider(&hSha1Alg, BCRYPT_SHA1_ALGORITHM, NULL, 0);
+    if (!BCRYPT_SUCCESS(status)) {
+        HiewGate_Message("Error", "BCryptOpenAlgorithmProvider() failed for SHA-1");
+        return HEM_OK;
+    }
+
+    status = BCryptCreateHash(hSha1Alg, &hSha1Hash, NULL, 0, NULL, 0, 0);
+    if (!BCRYPT_SUCCESS(status)) {
+        BCryptCloseAlgorithmProvider(hSha1Alg, 0);
+        HiewGate_Message("Error", "BCryptCreateHash() failed for SHA-1");
+        return HEM_OK;
+    }
+
+    // SHA-256
+    status = BCryptOpenAlgorithmProvider(&hSha256Alg, BCRYPT_SHA256_ALGORITHM, NULL, 0);
+    if (!BCRYPT_SUCCESS(status)) {
+        HiewGate_Message("Error", "BCryptOpenAlgorithmProvider() for SHA-256");
+        return HEM_OK;
+    }
+
+    status = BCryptCreateHash(hSha256Alg, &hSha256Hash, NULL, 0, NULL, 0, 0);
+    if (!BCRYPT_SUCCESS(status)) {
+        HiewGate_Message("Error", "BCryptCreateHash() failed for SHA-256");
+        return HEM_OK;
+    }
+    
+    // Calculate MD5, SHA-1, and SHA-256 using a single loop
+
+    HEM_QWORD totalRead = 0;
+
+    while (totalRead < BufferEnd) {
+        int read = HiewGate_FileRead(BaseAddr + totalRead, BufferSize, Buffer);
+
+        if (read == 0) {
+              break;
+        } else if (read == HEM_ERROR || read == HEM_ERR_POINTER_IS_NULL) {
+            HiewGate_Message("Error", "Error reading the file");
+            return HEM_OK;
+        }
+
+        // MD5
+        status = BCryptHashData(hMd5Hash, Buffer, read, 0);
+        if (!BCRYPT_SUCCESS(status)) {
+            goto cleanupHash;
+        }
+
+        // SHA-1
+        status = BCryptHashData(hSha1Hash, Buffer, read, 0);
+        if (!BCRYPT_SUCCESS(status)) {
+            goto cleanupHash;
+        }
+
+        // SHA-256
+        status = BCryptHashData(hSha256Hash, Buffer, read, 0);
+        if (!BCRYPT_SUCCESS(status)) {
+            goto cleanupHash;
+        }
+
+        totalRead += read;
+    }
+
+    // MD5
+    status = BCryptFinishHash(hMd5Hash, md5Hash, md5HashSize, 0);
+    if (!BCRYPT_SUCCESS(status)) {
+        HiewGate_Message("Error", "BCryptFinishHash() for MD5");
+        goto cleanupHash;
+    }
+
+    // SHA-1
+    status = BCryptFinishHash(hSha1Hash, sha1Hash, sha1HashSize, 0);
+    if (!BCRYPT_SUCCESS(status)) {
+        HiewGate_Message("Error", "BCryptFinishHash() for SHA-1");
+        goto cleanupHash;
+    }
+
+    // SHA-256
+    status = BCryptFinishHash(hSha256Hash, sha256Hash, sha256HashSize, 0);
+    if (!BCRYPT_SUCCESS(status)) {
+        HiewGate_Message("Error", "BCryptFinishHash() for SHA-256");
+        goto cleanupHash;
+    }
+
+cleanupHash:
+    // MD5
+    BCryptDestroyHash(hMd5Hash);
+    BCryptCloseAlgorithmProvider(hMd5Alg, 0);
+    // SHA-1
+    BCryptDestroyHash(hSha1Hash);
+    BCryptCloseAlgorithmProvider(hSha1Hash, 0);
+    // SHA-256
+    BCryptDestroyHash(hSha256Hash);
+    BCryptCloseAlgorithmProvider(hSha256Hash, 0);
+
+    // Build hash strings
+
+    // MD5
     for (ULONG i = 0; i < md5HashSize; ++i) {
         if (FAILED(StringCchPrintfA(md5String + i * 2, sizeof(md5String) - i * 2, "%02x", md5Hash[i]))) {
             HiewGate_Message("Error", "StringCchPrintfA() failed for MD5");
@@ -285,15 +320,6 @@ int HEM_API Hem_EntryPoint(HEMCALL_TAG* HemCall) {
     }
 
     // SHA-1
-    UCHAR sha1Hash[HASH_SHA1_LEN];
-    UCHAR sha1String[HASH_SHA1_STR_LEN + 1] = { 0 };
-    ULONG sha1HashSize = HASH_SHA1_LEN;
-
-    if (!CalculateSha1Hash(Buffer, (ULONG)BufferSize, sha1Hash, &sha1HashSize)) {
-        HiewGate_Message("Error", "Hash calculation failed");
-        goto cleanup;
-    }
-
     for (ULONG i = 0; i < sha1HashSize; ++i) {
         if (FAILED(StringCchPrintfA(sha1String + i * 2, sizeof(sha1String) - i * 2, "%02x", sha1Hash[i]))) {
             HiewGate_Message("Error", "StringCchPrintfA() failed for SHA-1");
@@ -302,15 +328,6 @@ int HEM_API Hem_EntryPoint(HEMCALL_TAG* HemCall) {
     }
 
     // SHA-256
-    UCHAR sha256Hash[HASH_SHA256_LEN];
-    UCHAR sha256String[HASH_SHA256_STR_LEN + 1] = { 0 };
-    ULONG sha256HashSize = HASH_SHA256_LEN;
-
-    if (!CalculateSha256Hash(Buffer, (ULONG)BufferSize, sha256Hash, &sha256HashSize)) {
-        HiewGate_Message("Error", "Hash calculation failed");
-        goto cleanup;
-    }
-
     for (ULONG i = 0; i < sha256HashSize; ++i) {
         if (FAILED(StringCchPrintfA(sha256String + i * 2, sizeof(sha256String) - i * 2, "%02x", sha256Hash[i]))) {
             HiewGate_Message("Error", "StringCchPrintfA() failed for SHA-256");
@@ -330,10 +347,10 @@ int HEM_API Hem_EntryPoint(HEMCALL_TAG* HemCall) {
                   ""};  // no ShiftFn
 
     // Menu entries
-    UCHAR *lines[] = {
+    UCHAR* lines[] = {
         md5String,
         sha1String,
-        sha256String
+        sha256String,
     };
 
     // Menu loop
