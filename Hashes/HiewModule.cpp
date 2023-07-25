@@ -121,22 +121,6 @@ static BOOL SendTextToClipboard(const PCHAR text) {
     return TRUE;
 }
 
-// printf-like error display function using HiewGate_Message
-// max 256 characters
-static void ShowErrorF(STRSAFE_LPCSTR format, ...) {
-    STRSAFE_LPSTR s[256];
-
-    va_list argptr;
-    va_start(argptr, format);
-
-    if (FAILED(StringCchPrintfA(s, sizeof(s), format, va_arg(argptr, char*)))) {
-        HiewGate_Message("Error", "ShowErrorF(): StringCchPrintfA() failed");
-        return;
-    }
-
-    HiewGate_Message("Error", (HEM_BYTE*)s);
-}
-
 int HEM_EXPORT Hem_Load(HIEWINFO_TAG* HiewInfo) {
     HiewGate_Set(HiewInfo);
     HiewInfo->hemInfo = &hemMod;
