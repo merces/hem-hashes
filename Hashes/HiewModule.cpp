@@ -72,7 +72,7 @@ static int ShowHelp(VOID) {
     };
 
     static CHAR title[100] = HEM_MODULE_NAME; // In case StringCchPrintfA() fails, we still have a title :)
-    StringCchPrintfA(title, _countof(title), "%s %d.%d", HEM_MODULE_NAME, HEM_MODULE_VERSION_MAJOR, HEM_MODULE_VERSION_MINOR);
+    StringCchPrintfA(title, _countof(title), "%s %d.%0.2d", HEM_MODULE_NAME, HEM_MODULE_VERSION_MAJOR, HEM_MODULE_VERSION_MINOR);
 
     return HiewGate_Window(title, HelpText, _countof(HelpText), 60, NULL, NULL);
 }
