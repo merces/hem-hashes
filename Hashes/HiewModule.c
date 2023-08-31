@@ -8,6 +8,8 @@
 
 #define BUFFER_SIZE 1024 * 1024 * 4
 
+#define HASH_CRC32_LEN 4
+#define HASH_CRC32_STR_LEN HASH_CRC32_LEN * 2
 #define HASH_MD5_LEN 16
 #define HASH_MD5_STR_LEN HASH_MD5_LEN * 2
 #define HASH_SHA1_LEN 20
@@ -18,9 +20,9 @@
 // HEM SDK required defs
 
 #define HEM_MODULE_VERSION_MAJOR 1
-#define HEM_MODULE_VERSION_MINOR 1
+#define HEM_MODULE_VERSION_MINOR 2
 #define HEM_MODULE_NAME "Hashes"
-#define HEM_MODULE_FULL_NAME "Hashes: MD5, SHA-1, SHA-256"
+#define HEM_MODULE_FULL_NAME "Hashes: CRC-32, MD5, SHA-1, SHA-256"
 #define HEM_MODULE_DESCRIPTION "Calculate common hashes of files and blocks"
 #define HEM_MODULE_AUTHOR "Fernando Merces - github.com/merces"
 
@@ -55,8 +57,8 @@ HEMINFO_TAG hemMod = {
 
 static int ShowHelp(VOID) {
     static PCHAR HelpText[] = {
-        "This module calculates the MD5, SHA-1, and SHA-256 hashes",
-        "for a given file or block.",
+        "This module calculates CRC-32, MD5, SHA-1,",
+        "and SHA-256 hashes for a given file/block.",
         "",
         "Author: "HEM_MODULE_AUTHOR,
         "",
@@ -164,20 +166,21 @@ int HEM_API Hem_EntryPoint(HEMCALL_TAG* HemCall) {
 
     HiewGate_MessageWaitOpen("Calculating hashes...");
 
+    // CRC-32
+    UINT32 crc32Hash = 0;
+    UCHAR crc32String[HASH_CRC32_STR_LEN + 1] = { 0 };
+
     // MD5
     UCHAR md5Hash[HASH_MD5_LEN] = { 0 };
     UCHAR md5String[HASH_MD5_STR_LEN + 1] = { 0 };
-    ULONG md5HashSize = sizeof(md5Hash);
 
     // SHA-1
     UCHAR sha1Hash[HASH_SHA1_LEN] = { 0 };
     UCHAR sha1String[HASH_SHA1_STR_LEN + 1] = { 0 };
-    ULONG sha1HashSize = HASH_SHA1_LEN;
 
     // SHA-256
     UCHAR sha256Hash[HASH_SHA256_LEN] = { 0 };
     UCHAR sha256String[HASH_SHA256_STR_LEN + 1] = { 0 };
-    ULONG sha256HashSize = HASH_SHA256_LEN;
 
     BCRYPT_ALG_HANDLE hMd5Alg, hSha1Alg, hSha256Alg;
     hMd5Alg = hSha1Alg = hSha256Alg = NULL;
@@ -224,7 +227,28 @@ int HEM_API Hem_EntryPoint(HEMCALL_TAG* HemCall) {
         goto cleanup;
     }
 
-    // Calculate MD5, SHA-1, and SHA-256 using a single loop
+    // Load ntdll.dll to use RtlComputeCrc32() for CRC-32
+
+    typedef DWORD (WINAPI* pRtlComputeCrc32)(DWORD dwInitial, const BYTE* pData, INT iLen);
+    pRtlComputeCrc32 gRtlComputeCrc32;
+
+    HMODULE ntdll = LoadLibrary(TEXT("ntdll.dll"));
+
+    if (!ntdll) {
+        HiewGate_Message("Error", "Could not load ntdll for CRC-32 calculation");
+        status = STATUS_INVALID_HANDLE;
+        goto cleanup;
+    }
+
+    gRtlComputeCrc32 = (pRtlComputeCrc32)GetProcAddress(ntdll, "RtlComputeCrc32");
+
+    if (!gRtlComputeCrc32) {
+        HiewGate_Message("Error", "Could not find the address for RtlComputeCrc32() in ntdll.dll");
+        status = STATUS_INVALID_HANDLE;
+        goto cleanup;
+    }
+
+    // Calculate all hashes using a single loop
 
     HEM_QWORD totalRead = 0;
 
@@ -238,7 +262,10 @@ int HEM_API Hem_EntryPoint(HEMCALL_TAG* HemCall) {
             goto cleanup;
         }
 
-        // Hash the buffer using all three algorithms
+        // Hash the buffer using all algorithms
+
+        // CRC-32
+        crc32Hash = gRtlComputeCrc32(crc32Hash, Buffer, read);
 
         // MD5
         status = BCryptHashData(hMd5Hash, Buffer, read, 0);
@@ -264,21 +291,21 @@ int HEM_API Hem_EntryPoint(HEMCALL_TAG* HemCall) {
     // Finalize hashing
 
     // MD5
-    status = BCryptFinishHash(hMd5Hash, md5Hash, md5HashSize, 0);
+    status = BCryptFinishHash(hMd5Hash, md5Hash, HASH_MD5_LEN, 0);
     if (!BCRYPT_SUCCESS(status)) {
         HiewGate_Message("Error", "BCryptFinishHash() for MD5");
         goto cleanup;
     }
 
     // SHA-1
-    status = BCryptFinishHash(hSha1Hash, sha1Hash, sha1HashSize, 0);
+    status = BCryptFinishHash(hSha1Hash, sha1Hash, HASH_SHA1_LEN, 0);
     if (!BCRYPT_SUCCESS(status)) {
         HiewGate_Message("Error", "BCryptFinishHash() for SHA-1");
         goto cleanup;
     }
 
     // SHA-256
-    status = BCryptFinishHash(hSha256Hash, sha256Hash, sha256HashSize, 0);
+    status = BCryptFinishHash(hSha256Hash, sha256Hash, HASH_SHA256_LEN, 0);
     if (!BCRYPT_SUCCESS(status)) {
         HiewGate_Message("Error", "BCryptFinishHash() for SHA-256");
         goto cleanup;
@@ -303,8 +330,13 @@ cleanup:
 
     // Build hash strings
 
+    //  CRC-32
+    if (FAILED(StringCchPrintfA(crc32String, sizeof(crc32String), "%08X", crc32Hash))) {
+        HiewGate_Message("Error", "StringCchPrintfA() failed for CRC-32");
+    }
+
     // MD5
-    for (ULONG i = 0; i < md5HashSize; ++i) {
+    for (ULONG i = 0; i < HASH_MD5_LEN; ++i) {
         if (FAILED(StringCchPrintfA(md5String + i * 2, sizeof(md5String) - i * 2, "%02x", md5Hash[i]))) {
             HiewGate_Message("Error", "StringCchPrintfA() failed for MD5");
             break;
@@ -312,7 +344,7 @@ cleanup:
     }
 
     // SHA-1
-    for (ULONG i = 0; i < sha1HashSize; ++i) {
+    for (ULONG i = 0; i < HASH_SHA1_LEN; ++i) {
         if (FAILED(StringCchPrintfA(sha1String + i * 2, sizeof(sha1String) - i * 2, "%02x", sha1Hash[i]))) {
             HiewGate_Message("Error", "StringCchPrintfA() failed for SHA-1");
             break;
@@ -320,7 +352,7 @@ cleanup:
     }
 
     // SHA-256
-    for (ULONG i = 0; i < sha256HashSize; ++i) {
+    for (ULONG i = 0; i < HASH_SHA256_LEN; ++i) {
         if (FAILED(StringCchPrintfA(sha256String + i * 2, sizeof(sha256String) - i * 2, "%02x", sha256Hash[i]))) {
             HiewGate_Message("Error", "StringCchPrintfA() failed for SHA-256");
             break;
@@ -340,6 +372,7 @@ cleanup:
 
     // Menu entries
     UCHAR* lines[] = {
+        crc32String,
         md5String,
         sha1String,
         sha256String,
