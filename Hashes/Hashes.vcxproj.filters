@@ -26,4 +26,7 @@
   <ItemGroup>
     <None Include="..\README.md" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="assets\hem-hashes.gif" />
+  </ItemGroup>
 </Project>
