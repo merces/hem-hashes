@@ -1,6 +1,6 @@
 # Hashes
 
-[Hiew](https://hiew.io) External Module (HEM) to calculate MD5, SHA-1, and SHA-256 hashes of files and blocks.
+[Hiew](https://hiew.io) External Module (HEM) to calculate CRC-32, MD5, SHA-1, and SHA-256 hashes of files and blocks.
 
 ## Installation
 
