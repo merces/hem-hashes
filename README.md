@@ -16,6 +16,11 @@ the hashes of the block content. Press `F5` to copy a hash value to clipboard.
 
 ![](assets/hem-hashes.gif)
 
+## Requirements
+
+- Licensed version of Hiew.
+- Windows Vista or newer.
+
 ## Thanks
 
 - @taviso for his [kiewtai module](https://github.com/taviso/kiewtai) (I borrowed code from there, but inserted
