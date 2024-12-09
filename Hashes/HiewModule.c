@@ -20,11 +20,13 @@
 // HEM SDK required defs
 
 #define HEM_MODULE_VERSION_MAJOR 1
-#define HEM_MODULE_VERSION_MINOR 2
+#define HEM_MODULE_VERSION_MINOR 3
 #define HEM_MODULE_NAME "Hashes"
 #define HEM_MODULE_FULL_NAME "Hashes: CRC-32, MD5, SHA-1, SHA-256"
 #define HEM_MODULE_DESCRIPTION "Calculate common hashes of files and blocks"
 #define HEM_MODULE_AUTHOR "Fernando Merces - github.com/merces"
+
+enum opMode { HASHES_FILE, HASHES_BLOCK };
 
 int HEM_API Hem_EntryPoint(HEMCALL_TAG* hemCall);
 int HEM_API Hem_Unload(VOID);
@@ -143,14 +145,18 @@ int HEM_API Hem_EntryPoint(HEMCALL_TAG* HemCall) {
     if (HiewGate_GetData(&HiewData) != HEM_OK)
         return HEM_ERROR;
 
+    enum opMode mode;
+
     // Check if there is an active block, if not use the whole file.
     if (HiewData.sizeMark) {
+        mode = HASHES_BLOCK;
         BaseAddr = HiewData.offsetMark1;
         BufferEnd = HiewData.sizeMark;
         // Use the smallest buffer if marked block size is smaller than BUFFER_SIZE
         // Notice a marked block cannot exceed UINT_MAX
         BufferSize = BufferEnd < BUFFER_SIZE ? (HEM_UINT)BufferEnd : BUFFER_SIZE;
     } else {
+        mode = HASHES_FILE;
         BaseAddr = 0;
         BufferEnd = HiewData.filelength;
         // Use a buffer to read the file contents using BUFFER_SIZE byte chunks
@@ -253,6 +259,14 @@ int HEM_API Hem_EntryPoint(HEMCALL_TAG* HemCall) {
     HEM_QWORD totalRead = 0;
 
     while (totalRead < BufferEnd) {
+
+        if (mode == HASHES_BLOCK) {
+            BufferSize = BufferEnd - totalRead;
+            if (BufferSize > BUFFER_SIZE) {
+                BufferSize = BUFFER_SIZE;
+            }
+        }
+
         int read = HiewGate_FileRead(BaseAddr + totalRead, BufferSize, Buffer);
 
         if (read == 0) {

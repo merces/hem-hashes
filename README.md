@@ -4,11 +4,11 @@
 
 ## Installation
 
-Download the `.hem` file and put it in your HIEW `hem` folder.
+Download the `.hem` file and put it in your Hiew `hem` folder.
 
 ## Usage
 
-After opening a file in Hiew, press `F11` to load a HIEW module and choose it from the menu.
+After opening a file in Hiew, press `F11` to load a Hiew module and choose it from the menu.
 It will calculate common hashes of the whole file. If you mark a block instead, Hashes will generate
 the hashes of the block content. Press `F5` to copy a hash value to clipboard.
 
