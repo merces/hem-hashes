@@ -294,9 +294,38 @@ int HEM_API Hem_EntryPoint(HEMCALL_TAG* HemCall) {
         }
 
         // SHA-256
-        status = BCryptHashData(hSha256Hash, Buffer, read, 0);
-        if (!BCRYPT_SUCCESS(status)) {
-            goto cleanup;
+	UCHAR sha256Hash[HASHES_SHA256_LEN] = { 0 };
+	UCHAR sha256String[HASHES_SHA256_STR_LEN + 1] = { 0 };
+
+	// Calculate all hashes using a single loop
+	hashObj.buffer = buffer;
+
+	PVOID hashingFunctions[] = {
+		calcCrc32,
+		calcMd5,
+		calcSha1,
+		calcSha256
+	};
+	HANDLE threadHandles[_countof(hashingFunctions)];
+	HEM_UINT bytesToRead = bufferSize;
+
+	while (totalRead < bufferEnd) {
+		// Update BytesToRead on every iteration.
+		// If the remaining data size is lower than
+		// the buffer size, read the remaining bytes only
+		if (bufferEnd - totalRead < HASHES_BUFFER_SIZE)
+			bytesToRead = (HEM_UINT)(bufferEnd - totalRead);
+
+		int read = HiewGate_FileRead(baseAddr + totalRead, bytesToRead, buffer);
+
+		if (read == 0) {
+			break;
+		} else if (read == HEM_ERROR || read == HEM_ERR_POINTER_IS_NULL) {
+			HiewGate_MessageWaitClose();
+			HiewGate_FreeMemory(buffer);
+			hashesDestroy(&hashObj);
+			HiewGate_SetErrorMsg("HiewGate_FileRead(): Error reading the file");
+			return HEM_ERROR;
         }
 
         totalRead += read;
