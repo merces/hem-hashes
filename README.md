@@ -29,7 +29,7 @@ other software to calculate one. The following is a comparison table with other
 software hadhing a commonm 4 GB file. The hardware is also the same.
 
 Program | Version | OS  | Hashes | Average time (seconds)
-------- | ------- | --- | --------------
+------- | ------- | --- | ------ | ----------------------
 md5sum | 9.4 | Kali (WSL) | MD5 | 26
 PowerShell Get-FileHash cmdlet | 5.1.26100.2161 | Windows 11 | MD5 | 9
 010 Editor | 15.01 | Windows 11 | MD5 | 7
