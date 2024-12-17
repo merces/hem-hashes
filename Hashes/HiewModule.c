@@ -68,6 +68,7 @@ static int ShowHelp(VOID) {
         "",
         "   F1 - Show this Help text.",
         "   F5 - Copy selected hash value to clipboard.",
+		"   ENTER - Same as F5, but closes the window afterwards.",
 		"   F6    - Copy all hashes to clipboard.",
         "",
         "To hash a block of data, first mark a block, then",
@@ -470,6 +471,12 @@ cleanup:
         default:
             break;
         }
+	}
+
+	// Handle ENTER key press
+	if (item > 0) {
+		if (!sendTextToClipboard(&lines[item - 1], 1))
+			HiewGate_Message("Error", "SendTextToClipboard() failed");
     }
 
     return HEM_OK;
