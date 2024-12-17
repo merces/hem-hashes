@@ -26,7 +26,7 @@ the hashes of the block content. Available commands:
 
 Hashes is fast. It calculates all four hash values it supports in the time it takes
 other software to calculate one. The following is a comparison table with other
-software hadhing a commonm 4 GB file. The hardware is also the same.
+software hadhing a common 4 GB file. The hardware is also the same.
 
 Program | Version | OS  | Hashes | Average time (seconds)
 ------- | ------- | --- | ------ | ----------------------
