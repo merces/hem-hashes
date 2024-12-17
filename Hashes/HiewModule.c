@@ -68,6 +68,7 @@ static int ShowHelp(VOID) {
         "",
         "   F1 - Show this Help text.",
         "   F5 - Copy selected hash value to clipboard.",
+		"   F6    - Copy all hashes to clipboard.",
         "",
         "To hash a block of data, first mark a block, then",
         "press F11 and load this module.",
@@ -432,10 +433,10 @@ cleanup:
 
     // Keys setup
     //                    "123456789ABC|F1____F2____F3____F4____F5____F6____F7____F8____F9____F10___F11___F12___"
-    HEM_FNKEYS fnKeys = { "100010000000|Help                    Copy                                            ",   // main Fn
+	HEM_FNKEYS fnKeys = { "100011000000|Help                    Copy  CpyAll                                    ",   // main Fn
                   "",   // no Alt-Fn
                   "",   // no Ctrl-Fn
-                  ""};  // no ShiftFn
+				  "" };  // no ShiftFn
 
     // Menu entries
     UCHAR* lines[] = {
@@ -459,7 +460,11 @@ cleanup:
             ShowHelp();
             break;
         case HEM_FNKEY_F5:
-            if (!SendTextToClipboard(lines[item - 1]))
+			if (!sendTextToClipboard(&lines[item - 1], 1))
+				HiewGate_Message("Error", "SendTextToClipboard() failed");
+			break;
+		case HEM_FNKEY_F6:
+			if (!sendTextToClipboard(lines, _countof(lines)))
                 HiewGate_Message("Error", "SendTextToClipboard() failed");
             break; 
         default:
