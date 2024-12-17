@@ -21,6 +21,15 @@ the hashes of the block content. Press `F5` to copy a hash value to clipboard.
 - Licensed version of Hiew.
 - Windows Vista or newer.
 
+### Note for Windows XP users
+
+It is possible to use Hashes with it, but you need the following:
+
+- Visual C++ Redistributable for Visual Studio v16.7.
+Download it from [here](https://my.visualstudio.com/downloads) (requires a Microsoft account).
+- `bcrypt.dll` in Hiew's folder or any other folder listed in `%PATH%`.
+There's an open source implementation [here](https://github.com/Blaukovitch/bcrypt-XP).
+
 ## Thanks
 
 - @taviso for his [kiewtai module](https://github.com/taviso/kiewtai) (I borrowed code from there, but inserted
