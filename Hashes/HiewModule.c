@@ -79,47 +79,71 @@ static int ShowHelp(VOID) {
     return HiewGate_Window(title, HelpText, _countof(HelpText), 60, NULL, NULL);
 }
 
-static BOOL SendTextToClipboard(const PCHAR text) {
-    if (!text)
-        return FALSE;
+static bool sendTextToClipboard(const char** lines, const size_t numberOfLines) {
+	if (!lines)
+		return false;
 
+	size_t totalLen = 0;
+	
+	for (size_t i = 0; i < numberOfLines; i++) {
     size_t len;
 
-    if (FAILED(StringCchLengthA(text, STRSAFE_MAX_CCH, &len)))
-        return FALSE;
+		if (FAILED(StringCchLengthA(lines[i], STRSAFE_MAX_CCH, &len)))
+			return false;
 
-    if (len < 1)
-        return FALSE;
+		totalLen += len + 1; // +1 for nullbyte or newline
+	}
 
-    HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, len + 1);
+	if (totalLen < 1)
+		return false;
+
+	HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, totalLen);
 
     if (!hMem)
-        return FALSE;
+		return false;
 
-    LPVOID p = GlobalLock(hMem);
+	LPSTR dest = (LPSTR) GlobalLock(hMem);
 
-    if (!p)
-        return FALSE;
+	if (!dest)
+		return false;
 
-    CopyMemory(p, text, len);
+	for (size_t i = 0; i < numberOfLines; i++) {
+		size_t len;
 
-    if (!GlobalUnlock(hMem) && GetLastError() != NO_ERROR)
-        return FALSE;
+		if (FAILED(StringCchLengthA(lines[i], STRSAFE_MAX_CCH, &len))) {
+			GlobalFree(hMem);
+			return false;
+		}
 
-    OpenClipboard(NULL);
+		CopyMemory(dest, lines[i], len);
+		dest += len;
+		*dest++ = '\n';
+	}
+	*(dest - 1) = '\0'; // replace last newline by nullbyte
 
-    if (!EmptyClipboard())
-        return FALSE;
+	if (!GlobalUnlock(hMem) && GetLastError() != NO_ERROR) {
+		GlobalFree(hMem);
+		return false;
+	}
+
+	if (!OpenClipboard(NULL))
+		return false;
+
+	if (!EmptyClipboard()) {
+		CloseClipboard();
+		return false;
+	}
 
     if (!SetClipboardData(CF_TEXT, hMem)) {
         GlobalFree(hMem);
-        return FALSE;
+		CloseClipboard();
+		return false;
     }
 
     if (!CloseClipboard())
-        return FALSE;
+		return false;
 
-    return TRUE;
+	return true;
 }
 
 int HEM_EXPORT Hem_Load(HIEWINFO_TAG* HiewInfo) {
